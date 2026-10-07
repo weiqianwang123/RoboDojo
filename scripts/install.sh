@@ -121,11 +121,13 @@ setup_base_deps() {
 setup_submodules() {
   cd "$CURRENT_DIR" || exit 1
   local subs=(third_party/IsaacLab third_party/curobo XPolicyLab)
-  info "[3/7] Syncing and updating submodules from remote..."
+  # At the commits this checkout records (CDG's fork: not upstream's latest,
+  # which --remote would take), so that every install evaluates the same code.
+  info "[3/7] Syncing and updating submodules to their recorded commits..."
   git submodule sync "${subs[@]}"
   for sub in "${subs[@]}"; do
-    info "    Updating ${sub} from remote..."
-    git submodule update --init --remote --progress "$sub" || {
+    info "    Updating ${sub}..."
+    git submodule update --init --progress "$sub" || {
       [ "$sub" = "XPolicyLab" ] && error "Failed to clone XPolicyLab. Ensure HTTPS auth (e.g. gh auth login)."
       error "Failed to update $sub."
     }
